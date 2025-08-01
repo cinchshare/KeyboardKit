@@ -36,15 +36,51 @@ import UIKit
 /// <doc:Essentials-Article> for more information on how you
 /// should set up your keyboard extension.
 open class KeyboardInputViewController: UIInputViewController, KeyboardController, UrlOpener {
+  public var keyboardHeightConstraint: NSLayoutConstraint?
+  public var preferredKeyboardHeight: CGFloat = 250
+/*
+  open func setKeyboardHeight(_ height: CGFloat) {
+      preferredKeyboardHeight = height
+      keyboardHeightConstraint?.constant = height
+      UIView.animate(withDuration: 0.25) {
+          self.view.layoutIfNeeded()
+      }
+  }
+*/
+  open func setKeyboardHeight(_ height: CGFloat, animated: Bool = true) {
+      preferredKeyboardHeight = height
+      keyboardHeightConstraint?.constant = height
+
+      let duration: TimeInterval = (height < view.bounds.height) ? 0.15 : 0.25 // ✅ faster when shrinking
+
+      if animated {
+          UIViewPropertyAnimator(duration: duration, curve: .easeInOut) {
+              self.view.layoutIfNeeded()
+          }.startAnimation()
+      } else {
+          self.view.layoutIfNeeded()
+      }
+  }
 
 
     // MARK: - View Controller Lifecycle
 
-    open override func viewDidLoad() {
-        super.viewDidLoad()
-        setupInitialWidth()
-        DispatchQueue.main.async(execute: performInitialSetup)
+  open override func viewDidLoad() {
+    super.viewDidLoad()
+    setupInitialWidth()
+    DispatchQueue.main.async(execute: performInitialSetup)
+    // ✅ Enable self-sizing for dynamic height
+    if let inputView = inputView as? UIInputView {
+      inputView.allowsSelfSizing = true
     }
+    
+    // ✅ Add a height constraint if not already present
+    if keyboardHeightConstraint == nil {
+      keyboardHeightConstraint = view.heightAnchor.constraint(equalToConstant: preferredKeyboardHeight)
+      keyboardHeightConstraint?.priority = .required
+      keyboardHeightConstraint?.isActive = true
+    }
+  }
 
     open override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
