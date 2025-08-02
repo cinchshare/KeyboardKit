@@ -54,12 +54,16 @@ public extension Keyboard {
         private var showLocale = true
         
         public var body: some View {
+          if let custom = KeyboardSpaceConfig.customSpaceView {
+                  custom
+          } else {
             ZStack {
-                localeView.opacity(showLocale ? 1 : 0)
-                nonLocaleView.opacity(!showLocale ? 1 : 0)
+              localeView.opacity(showLocale ? 1 : 0)
+              nonLocaleView.opacity(!showLocale ? 1 : 0)
             }
             .transition(.opacity)
             .onAppear(perform: performAnimation)
+          }
         }
     }
 }
@@ -98,6 +102,10 @@ private extension Keyboard.SpaceContent {
             withAnimation { showLocale = false }
         }
     }
+}
+public enum KeyboardSpaceConfig {
+    /// Global override for rendering a custom space bar view.
+    public static var customSpaceView: AnyView?
 }
 
 #Preview {
