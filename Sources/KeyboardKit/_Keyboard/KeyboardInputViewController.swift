@@ -36,51 +36,61 @@ import UIKit
 /// <doc:Essentials-Article> for more information on how you
 /// should set up your keyboard extension.
 open class KeyboardInputViewController: UIInputViewController, KeyboardController, UrlOpener {
-  public var keyboardHeightConstraint: NSLayoutConstraint?
-  public var preferredKeyboardHeight: CGFloat = 250
-/*
-  open func setKeyboardHeight(_ height: CGFloat) {
-      preferredKeyboardHeight = height
-      keyboardHeightConstraint?.constant = height
-      UIView.animate(withDuration: 0.25) {
-          self.view.layoutIfNeeded()
-      }
-  }
-*/
-  open func setKeyboardHeight(_ height: CGFloat, animated: Bool = true) {
-      preferredKeyboardHeight = height
-      keyboardHeightConstraint?.constant = height
+    
+    public var keyboardHeightConstraint: NSLayoutConstraint?
+    public var preferredKeyboardHeight: CGFloat = 250
 
-      let duration: TimeInterval = (height < view.bounds.height) ? 0.15 : 0.25 // ✅ faster when shrinking
+    public func cinch_setHeight(_ height: CGFloat) {
+        guard let inputView = self.inputView else { return }
 
-      if animated {
-          UIViewPropertyAnimator(duration: duration, curve: .easeInOut) {
-              self.view.layoutIfNeeded()
-          }.startAnimation()
-      } else {
-          self.view.layoutIfNeeded()
-      }
-  }
+        // Look for existing Cinch height constraint
+        if let existing = inputView.constraints.first(where: { $0.identifier == "cinchHeight" }) {
+            existing.constant = height
+            inputView.setNeedsLayout()
+            inputView.layoutIfNeeded()
+            return
+        }
 
+        // Create new constraint if none exists
+        let c = inputView.heightAnchor.constraint(equalToConstant: height)
+        c.identifier = "cinchHeight"
+        c.priority = .required
+        c.isActive = true
+
+        inputView.setNeedsLayout()
+        inputView.layoutIfNeeded()
+    }
+
+    /// Cinch: used by CinchKeyboardViewController to expand/collapse
+    /// the keyboard when showing the overlay. This works together
+    /// with `allowsSelfSizing`. UIKit may log a constraint warning
+    /// when it breaks its internal encapsulated height in favor of
+    /// this one. That warning is harmless and expected.
+    open func setKeyboardHeight(_ height: CGFloat, animated: Bool = true) {
+        cinch_setHeight(height)
+    }
 
     // MARK: - View Controller Lifecycle
 
-  open override func viewDidLoad() {
-    super.viewDidLoad()
-    setupInitialWidth()
-    DispatchQueue.main.async(execute: performInitialSetup)
-    // ✅ Enable self-sizing for dynamic height
-    if let inputView = inputView as? UIInputView {
-      inputView.allowsSelfSizing = true
+    open override func viewDidLoad() {
+        super.viewDidLoad()
+        setupInitialWidth()
+        DispatchQueue.main.async(execute: performInitialSetup)
+
+        // ✅ Enable self-sizing for dynamic height
+        //if let inputView = inputView as? UIInputView {
+        //    inputView.allowsSelfSizing = true
+        //}
+
+        // ✅ Add a height constraint if not already present
+        //if keyboardHeightConstraint == nil {
+        //    keyboardHeightConstraint = view.heightAnchor.constraint(
+        //        equalToConstant: preferredKeyboardHeight
+        //    )
+        //    keyboardHeightConstraint?.priority = .required
+        //    keyboardHeightConstraint?.isActive = true
+        //}
     }
-    
-    // ✅ Add a height constraint if not already present
-    if keyboardHeightConstraint == nil {
-      keyboardHeightConstraint = view.heightAnchor.constraint(equalToConstant: preferredKeyboardHeight)
-      keyboardHeightConstraint?.priority = .required
-      keyboardHeightConstraint?.isActive = true
-    }
-  }
 
     open override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -103,20 +113,19 @@ open class KeyboardInputViewController: UIInputViewController, KeyboardControlle
         viewWillSyncWithContext()
         super.traitCollectionDidChange(previousTraitCollection)
     }
-    
-    
+
+
     // MARK: - Initial Setup
-    
+
     /// Call async to give App Group setup time to complete
     func performInitialSetup() {
         state.setup(for: self)
         setupLocaleObservation()
         hasPerformedInitialSetup = true
     }
-    
+
     /// Used to keep track if the controller has been setup
     public var hasPerformedInitialSetup = false
-    
 
 
     // MARK: - Keyboard View Controller Lifecycle
@@ -413,10 +422,10 @@ open class KeyboardInputViewController: UIInputViewController, KeyboardControlle
             }
         }
     }
-    
-    
+
+
     // MARK: - Deprecated
-    
+
     @available(*, deprecated, message: "Use view builder variant instead.")
     open func setupKeyboardView<Content: View>(
         with view: @autoclosure @escaping () -> Content
